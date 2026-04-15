@@ -349,6 +349,18 @@
     <button class="save-btn" style="margin-top:8px;background:var(--accent);color:#fff;border-color:var(--accent)" onclick="openSheet()">スプシを開く</button>
   </div>
   <div class="settings-card">
+    <h3>帳簿を作成</h3>
+    <div class="field" style="margin-bottom:0">
+      <label>対象年度</label>
+      <input type="number" id="bookYear" value="2026" min="2020" max="2099" style="text-align:center;font-size:18px;font-weight:700">
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:14px">
+      <button class="save-btn" style="margin-top:0" onclick="createBook('pl')">📊 損益計算書を作成</button>
+      <button class="save-btn" style="margin-top:0" onclick="createBook('bs')">🏦 貸借対照表を作成</button>
+      <button class="save-btn" style="margin-top:0" onclick="createBook('ledger')">📒 総勘定元帳を作成</button>
+    </div>
+  </div>
+  <div class="settings-card">
     <h3>接続テスト</h3>
     <button class="save-btn" onclick="testConnection()">GASに接続確認</button>
   </div>
@@ -604,6 +616,30 @@ function saveSettings() {
   GAS_URL = document.getElementById('gasUrl').value.trim();
   localStorage.setItem('gasUrl', GAS_URL);
   showToast('✅ 保存しました');
+}
+
+async function createBook(type) {
+  if (!GAS_URL) { showToast('❌ GAS URLを設定してください', true); return; }
+  const year = parseInt(document.getElementById('bookYear').value);
+  if (!year || year < 2020 || year > 2099) { showToast('❌ 年度を正しく入力してください', true); return; }
+  const labels = { pl: '損益計算書', bs: '貸借対照表', ledger: '総勘定元帳' };
+  document.getElementById('loading').classList.add('show');
+  try {
+    const res = await fetch(GAS_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: type, year }),
+    });
+    const json = await res.json();
+    if (json.status === 'ok') {
+      showToast(`✅ ${year}年 ${labels[type]}を作成しました`);
+    } else {
+      showToast('❌ ' + (json.message || 'エラーが発生しました'), true);
+    }
+  } catch(e) {
+    showToast('❌ 通信エラー', true);
+  } finally {
+    document.getElementById('loading').classList.remove('show');
+  }
 }
 
 function saveSheetUrl() {
