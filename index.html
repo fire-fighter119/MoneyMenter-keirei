@@ -340,6 +340,15 @@
     <button class="save-btn" onclick="saveSettings()">保存</button>
   </div>
   <div class="settings-card">
+    <h3>スプレッドシートURL</h3>
+    <input type="url" id="sheetUrl" placeholder="https://docs.google.com/spreadsheets/d/...">
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="save-btn" style="margin-top:0;flex:1" onclick="saveSheetUrl()">保存</button>
+      <button class="save-btn" style="margin-top:0;flex:1;border-color:var(--danger);color:var(--danger)" onclick="deleteSheetUrl()">削除</button>
+    </div>
+    <button class="save-btn" style="margin-top:8px;background:var(--accent);color:#fff;border-color:var(--accent)" onclick="openSheet()">スプシを開く</button>
+  </div>
+  <div class="settings-card">
     <h3>接続テスト</h3>
     <button class="save-btn" onclick="testConnection()">GASに接続確認</button>
   </div>
@@ -351,6 +360,7 @@
 <script>
 // ===== 設定 =====
 let GAS_URL = localStorage.getItem('gasUrl') || '';
+let SHEET_URL = localStorage.getItem('sheetUrl') || '';
 let currentType = 'income';
 let isRecording = false;
 let recognition = null;
@@ -365,6 +375,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 設定読み込み
   if (GAS_URL) document.getElementById('gasUrl').value = GAS_URL;
+  if (SHEET_URL) document.getElementById('sheetUrl').value = SHEET_URL;
 
   // 音声認識の初期化
   initVoice();
@@ -593,6 +604,24 @@ function saveSettings() {
   GAS_URL = document.getElementById('gasUrl').value.trim();
   localStorage.setItem('gasUrl', GAS_URL);
   showToast('✅ 保存しました');
+}
+
+function saveSheetUrl() {
+  SHEET_URL = document.getElementById('sheetUrl').value.trim();
+  localStorage.setItem('sheetUrl', SHEET_URL);
+  showToast('✅ スプシURLを保存しました');
+}
+
+function deleteSheetUrl() {
+  SHEET_URL = '';
+  localStorage.removeItem('sheetUrl');
+  document.getElementById('sheetUrl').value = '';
+  showToast('🗑️ スプシURLを削除しました');
+}
+
+function openSheet() {
+  if (!SHEET_URL) { showToast('❌ URLが設定されていません', true); return; }
+  window.open(SHEET_URL, '_blank');
 }
 
 async function testConnection() {
