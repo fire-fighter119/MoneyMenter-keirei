@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>MoneyMentor 経理</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    :root {
+      --bg: #0f0f1a;
+      --card: #1a1a2e;
+      --accent: #4f8ef7;
+      --success: #2ecc71;
+      --danger: #e74c3c;
+      --text: #f0f0f0;
+      --sub: #888;
+      --border: #2a2a3e;
+      --input-bg: #252540;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif;
+      min-height: 100dvh;
+      padding-bottom: 80px;
+    }
+
+    /* ヘッダー */
+    header {
+      background: var(--card);
+      padding: 16px 20px 12px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    header h1 { font-size: 17px; font-weight: 700; letter-spacing: 0.5px; }
+    header .date { font-size: 12px; color: var(--sub); }
+
+    /* タブ */
+    .tabs {
+      display: flex;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+    }
+    .tab {
+      flex: 1;
+      padding: 12px;
+      text-align: center;
+      font-size: 14px;
+      color: var(--sub);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+    }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    /* メインコンテンツ */
+    .content { padding: 16px; max-width: 480px; margin: 0 auto; }
+
+    /* フォーム */
+    .form-card {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    /* 収入/支出 切り替え */
+    .type-toggle {
+      display: flex;
+      background: var(--input-bg);
+      border-radius: 10px;
+      padding: 4px;
+      margin-bottom: 20px;
+    }
+    .type-btn {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      background: transparent;
+      color: var(--sub);
+      font-size: 15px;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .type-btn.active-income { background: var(--success); color: #fff; }
+    .type-btn.active-expense { background: var(--danger); color: #fff; }
+
+    /* 入力フィールド */
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-size: 12px; color: var(--sub); margin-bottom: 6px; font-weight: 500; }
+    .field input, .field select {
+      width: 100%;
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-size: 16px;
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    .field input:focus, .field select:focus { border-color: var(--accent); }
+    .field select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
+
+    /* 金額フィールド */
+    .amount-wrap { position: relative; }
+    .amount-wrap input { padding-left: 28px; font-size: 22px; font-weight: 700; }
+    .amount-wrap .yen { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 18px; color: var(--sub); font-weight: 600; }
+
+    /* 音声入力 */
+    .voice-area {
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .voice-area.recording { border-color: var(--danger); background: #2a1020; animation: pulse 1s infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.7; } }
+    .mic-btn {
+      width: 40px; height: 40px;
+      background: var(--accent);
+      border: none;
+      border-radius: 50%;
+      color: #fff;
+      font-size: 18px;
+      cursor: pointer;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s;
+    }
+    .mic-btn.recording { background: var(--danger); }
+    .voice-text { font-size: 14px; color: var(--sub); flex: 1; }
+
+    /* 送信ボタン */
+    .submit-btn {
+      width: 100%;
+      padding: 16px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-top: 4px;
+    }
+    .submit-btn:active { transform: scale(0.98); opacity: 0.9; }
+    .submit-btn:disabled { background: var(--border); color: var(--sub); }
+
+    /* 最近の取引 */
+    .section-title { font-size: 13px; color: var(--sub); font-weight: 600; margin-bottom: 12px; letter-spacing: 0.5px; }
+    .tx-item {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .tx-icon {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+    .tx-icon.income { background: rgba(46,204,113,0.15); }
+    .tx-icon.expense { background: rgba(231,76,60,0.15); }
+    .tx-info { flex: 1; min-width: 0; }
+    .tx-memo { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tx-sub { font-size: 12px; color: var(--sub); margin-top: 2px; }
+    .tx-amount { font-size: 16px; font-weight: 700; flex-shrink: 0; }
+    .tx-amount.income { color: var(--success); }
+    .tx-amount.expense { color: var(--danger); }
+
+    /* トースト */
+    .toast {
+      position: fixed;
+      bottom: 90px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--success);
+      color: #fff;
+      padding: 12px 24px;
+      border-radius: 24px;
+      font-size: 14px;
+      font-weight: 600;
+      opacity: 0;
+      transition: all 0.3s;
+      pointer-events: none;
+      white-space: nowrap;
+      z-index: 100;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .toast.error { background: var(--danger); }
+
+    /* ローディング */
+    .loading { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 50; align-items: center; justify-content: center; }
+    .loading.show { display: flex; }
+    .spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* 設定タブ */
+    .settings-card { background: var(--card); border-radius: 16px; padding: 20px; margin-bottom: 16px; }
+    .settings-card h3 { font-size: 14px; color: var(--sub); margin-bottom: 12px; }
+    .settings-card input { width: 100%; background: var(--input-bg); border: 1px solid var(--border); color: var(--text); padding: 12px 14px; border-radius: 10px; font-size: 14px; outline: none; }
+    .save-btn { margin-top: 12px; width: 100%; padding: 12px; background: var(--card); border: 1px solid var(--accent); color: var(--accent); border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>💰 MoneyMentor</h1>
+    <div class="date" id="headerDate"></div>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('input')" id="tab-input">入力</div>
+  <div class="tab" onclick="switchTab('history')" id="tab-history">履歴</div>
+  <div class="tab" onclick="switchTab('settings')" id="tab-settings">設定</div>
+</div>
+
+<!-- 入力タブ -->
+<div class="content" id="page-input">
+  <div class="form-card">
+
+    <!-- 収入/支出 -->
+    <div class="type-toggle">
+      <button class="type-btn active-income" id="btn-income" onclick="setType('income')">＋ 収入</button>
+      <button class="type-btn" id="btn-expense" onclick="setType('expense')">－ 支出</button>
+    </div>
+
+    <!-- 音声入力 -->
+    <div class="voice-area" id="voiceArea" onclick="toggleVoice()">
+      <button class="mic-btn" id="micBtn">🎤</button>
+      <div class="voice-text" id="voiceText">タップして音声入力</div>
+    </div>
+
+    <!-- 日付 -->
+    <div class="field">
+      <label>日付</label>
+      <input type="date" id="date">
+    </div>
+
+    <!-- 事業区分 -->
+    <div class="field">
+      <label>事業区分</label>
+      <select id="business">
+        <option value="業務委託">業務委託（大西電機）</option>
+        <option value="不動産">不動産</option>
+        <option value="note">note</option>
+        <option value="共通">共通</option>
+      </select>
+    </div>
+
+    <!-- 勘定科目 -->
+    <div class="field">
+      <label>勘定科目</label>
+      <select id="category">
+        <optgroup label="── 収入 ──" id="income-opts">
+          <option value="売上高（業務委託）">売上高（業務委託）</option>
+          <option value="note収益">note収益</option>
+          <option value="家賃収入">家賃収入</option>
+        </optgroup>
+        <optgroup label="── 支出 ──" id="expense-opts">
+          <option value="水道光熱費">水道光熱費</option>
+          <option value="通信費">通信費</option>
+          <option value="消耗品費">消耗品費</option>
+          <option value="新聞図書費">新聞図書費</option>
+          <option value="修繕費">修繕費</option>
+          <option value="固定資産税">固定資産税</option>
+          <option value="交通費">交通費</option>
+          <option value="広告宣伝費">広告宣伝費</option>
+          <option value="その他経費">その他経費</option>
+        </optgroup>
+      </select>
+    </div>
+
+    <!-- 支払方法（支出時のみ） -->
+    <div class="field" id="paymentField">
+      <label>支払方法</label>
+      <select id="payment">
+        <option value="事業主借">個人立替（事業主借）</option>
+        <option value="普通預金">事業口座（住信SBI）</option>
+      </select>
+    </div>
+
+    <!-- 摘要 -->
+    <div class="field">
+      <label>摘要</label>
+      <input type="text" id="memo" placeholder="例：大西電機 12月分">
+    </div>
+
+    <!-- 金額 -->
+    <div class="field">
+      <label>金額（税込）</label>
+      <div class="amount-wrap">
+        <span class="yen">¥</span>
+        <input type="number" id="amount" placeholder="0" inputmode="numeric">
+      </div>
+    </div>
+
+    <button class="submit-btn" onclick="submitEntry()" id="submitBtn">記帳する</button>
+  </div>
+</div>
+
+<!-- 履歴タブ -->
+<div class="content" id="page-history" style="display:none">
+  <div class="section-title">最近の取引</div>
+  <div id="historyList"><div style="color:var(--sub);text-align:center;padding:40px 0">読み込み中...</div></div>
+</div>
+
+<!-- 設定タブ -->
+<div class="content" id="page-settings" style="display:none">
+  <div class="settings-card">
+    <h3>Google Apps Script URL</h3>
+    <input type="url" id="gasUrl" placeholder="https://script.google.com/macros/s/...">
+    <button class="save-btn" onclick="saveSettings()">保存</button>
+  </div>
+  <div class="settings-card">
+    <h3>接続テスト</h3>
+    <button class="save-btn" onclick="testConnection()">GASに接続確認</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="loading" id="loading"><div class="spinner"></div></div>
+
+<script>
+// ===== 設定 =====
+let GAS_URL = localStorage.getItem('gasUrl') || '';
+let currentType = 'income';
+let isRecording = false;
+let recognition = null;
+
+// ===== 初期化 =====
+document.addEventListener('DOMContentLoaded', () => {
+  // 今日の日付をセット
+  const today = new Date();
+  document.getElementById('date').value = today.toISOString().split('T')[0];
+  document.getElementById('headerDate').textContent =
+    today.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
+
+  // 設定読み込み
+  if (GAS_URL) document.getElementById('gasUrl').value = GAS_URL;
+
+  // 音声認識の初期化
+  initVoice();
+});
+
+// ===== タブ切り替え =====
+function switchTab(tab) {
+  ['input', 'history', 'settings'].forEach(t => {
+    document.getElementById(`page-${t}`).style.display = t === tab ? 'block' : 'none';
+    document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
+  });
+  if (tab === 'history') loadHistory();
+}
+
+// ===== 収入/支出 切り替え =====
+function setType(type) {
+  currentType = type;
+  const incomeBtn = document.getElementById('btn-income');
+  const expenseBtn = document.getElementById('btn-expense');
+  const paymentField = document.getElementById('paymentField');
+  const category = document.getElementById('category');
+
+  if (type === 'income') {
+    incomeBtn.className = 'type-btn active-income';
+    expenseBtn.className = 'type-btn';
+    paymentField.style.display = 'none';
+    category.value = '売上高（業務委託）';
+  } else {
+    incomeBtn.className = 'type-btn';
+    expenseBtn.className = 'type-btn active-expense';
+    paymentField.style.display = 'block';
+    category.value = '水道光熱費';
+  }
+}
+
+// ===== 音声入力 =====
+function initVoice() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    document.getElementById('voiceArea').style.display = 'none';
+    return;
+  }
+  recognition = new SpeechRecognition();
+  recognition.lang = 'ja-JP';
+  recognition.continuous = false;
+  recognition.interimResults = true;
+
+  recognition.onresult = (event) => {
+    const transcript = Array.from(event.results)
+      .map(r => r[0].transcript).join('');
+    document.getElementById('voiceText').textContent = transcript;
+
+    if (event.results[event.results.length - 1].isFinal) {
+      parseVoiceInput(transcript);
+    }
+  };
+
+  recognition.onend = () => {
+    isRecording = false;
+    document.getElementById('micBtn').className = 'mic-btn';
+    document.getElementById('voiceArea').className = 'voice-area';
+  };
+
+  recognition.onerror = () => {
+    isRecording = false;
+    document.getElementById('micBtn').className = 'mic-btn';
+    document.getElementById('voiceArea').className = 'voice-area';
+    document.getElementById('voiceText').textContent = 'タップして音声入力';
+  };
+}
+
+function toggleVoice() {
+  if (!recognition) return;
+  if (isRecording) {
+    recognition.stop();
+  } else {
+    isRecording = true;
+    document.getElementById('micBtn').className = 'mic-btn recording';
+    document.getElementById('voiceArea').className = 'voice-area recording';
+    document.getElementById('voiceText').textContent = '話してください...';
+    recognition.start();
+  }
+}
+
+// 音声テキストを解析してフォームに入力
+function parseVoiceInput(text) {
+  // 金額を抽出（例：「1500円」「19200円」）
+  const amountMatch = text.match(/(\d+(?:,\d{3})*)円/);
+  if (amountMatch) {
+    document.getElementById('amount').value = amountMatch[1].replace(/,/g, '');
+  }
+
+  // 勘定科目キーワード判定
+  const categoryMap = {
+    '電気': '水道光熱費', '光熱': '水道光熱費', '電気代': '水道光熱費',
+    'モバイル': '通信費', '携帯': '通信費', 'ネット': '通信費',
+    'canva': '通信費', 'キャンバ': '通信費',
+    'chatgpt': '通信費', 'チャットgpt': '通信費', 'gpt': '通信費',
+    'サーバー': '通信費', 'ドメイン': '通信費',
+    '本': '新聞図書費', '書籍': '新聞図書費', 'リベシティ': '新聞図書費',
+    '消耗': '消耗品費', '文具': '消耗品費',
+    '大西': '売上高（業務委託）', '電機': '売上高（業務委託）',
+    '修繕': '修繕費', '固定資産': '固定資産税',
+  };
+
+  const lowerText = text.toLowerCase();
+  for (const [keyword, category] of Object.entries(categoryMap)) {
+    if (lowerText.includes(keyword.toLowerCase())) {
+      document.getElementById('category').value = category;
+      if (['売上高（業務委託）', 'note収益', '家賃収入'].includes(category)) {
+        setType('income');
+      } else {
+        setType('expense');
+      }
+      break;
+    }
+  }
+
+  // 摘要：金額と科目キーワードを除いた部分
+  const memoText = text.replace(/\d+(?:,\d{3})*円/, '').trim();
+  if (memoText) document.getElementById('memo').value = memoText;
+
+  document.getElementById('voiceText').textContent = `✅ "${text}"`;
+}
+
+// ===== 記帳送信 =====
+async function submitEntry() {
+  const date = document.getElementById('date').value;
+  const business = document.getElementById('business').value;
+  const category = document.getElementById('category').value;
+  const memo = document.getElementById('memo').value;
+  const amount = Number(document.getElementById('amount').value);
+  const payment = document.getElementById('payment').value;
+
+  if (!date || !amount || amount <= 0) {
+    showToast('日付と金額を入力してください', true);
+    return;
+  }
+  if (!GAS_URL) {
+    showToast('設定タブでGAS URLを入力してください', true);
+    return;
+  }
+
+  // 仕訳の借方・貸方を自動決定
+  let debit, credit;
+  if (currentType === 'income') {
+    debit = '普通預金（住信SBI）';
+    credit = category;
+  } else {
+    debit = category;
+    credit = payment;
+  }
+
+  const entry = {
+    date, business,
+    type: currentType === 'income' ? '収入' : '支出',
+    debit, debitAmount: amount,
+    credit, creditAmount: amount,
+    memo, amount,
+    tax: currentType === 'income' ? '課税売上10%' : '課対仕入10%',
+  };
+
+  setLoading(true);
+  try {
+    const res = await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(entry),
+    });
+    const result = await res.json();
+    if (result.status === 'ok') {
+      showToast('✅ 記帳しました');
+      resetForm();
+      saveToLocalHistory(entry);
+    } else {
+      showToast('エラーが発生しました', true);
+    }
+  } catch (e) {
+    showToast('通信エラー。GAS URLを確認してください', true);
+  }
+  setLoading(false);
+}
+
+// フォームリセット
+function resetForm() {
+  document.getElementById('memo').value = '';
+  document.getElementById('amount').value = '';
+  document.getElementById('voiceText').textContent = 'タップして音声入力';
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('date').value = today;
+}
+
+// ===== ローカル履歴（直近10件） =====
+function saveToLocalHistory(entry) {
+  const history = JSON.parse(localStorage.getItem('history') || '[]');
+  history.unshift({ ...entry, savedAt: Date.now() });
+  if (history.length > 30) history.pop();
+  localStorage.setItem('history', JSON.stringify(history));
+}
+
+function loadHistory() {
+  const history = JSON.parse(localStorage.getItem('history') || '[]');
+  const list = document.getElementById('historyList');
+  if (history.length === 0) {
+    list.innerHTML = '<div style="color:var(--sub);text-align:center;padding:40px 0">まだ取引がありません</div>';
+    return;
+  }
+  list.innerHTML = history.map(tx => `
+    <div class="tx-item">
+      <div class="tx-icon ${tx.type === '収入' ? 'income' : 'expense'}">
+        ${tx.type === '収入' ? '↑' : '↓'}
+      </div>
+      <div class="tx-info">
+        <div class="tx-memo">${tx.memo || tx.credit || tx.debit}</div>
+        <div class="tx-sub">${tx.date} · ${tx.business} · ${tx.type === '収入' ? tx.credit : tx.debit}</div>
+      </div>
+      <div class="tx-amount ${tx.type === '収入' ? 'income' : 'expense'}">
+        ${tx.type === '収入' ? '+' : '-'}¥${tx.amount.toLocaleString()}
+      </div>
+    </div>
+  `).join('');
+}
+
+// ===== 設定 =====
+function saveSettings() {
+  GAS_URL = document.getElementById('gasUrl').value.trim();
+  localStorage.setItem('gasUrl', GAS_URL);
+  showToast('✅ 保存しました');
+}
+
+async function testConnection() {
+  if (!GAS_URL) { showToast('URLを入力してください', true); return; }
+  setLoading(true);
+  try {
+    const res = await fetch(GAS_URL + '?test=1');
+    const text = await res.text();
+    showToast('✅ 接続OK');
+  } catch {
+    showToast('接続失敗。URLを確認してください', true);
+  }
+  setLoading(false);
+}
+
+// ===== UI ヘルパー =====
+function showToast(msg, isError = false) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.className = 'toast show' + (isError ? ' error' : '');
+  setTimeout(() => toast.className = 'toast', 2500);
+}
+
+function setLoading(show) {
+  document.getElementById('loading').className = show ? 'loading show' : 'loading';
+  document.getElementById('submitBtn').disabled = show;
+}
+</script>
+</body>
+</html>
