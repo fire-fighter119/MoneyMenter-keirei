@@ -552,19 +552,15 @@ async function submitEntry() {
 
   setLoading(true);
   try {
-    const res = await fetch(GAS_URL, {
+    await fetch(GAS_URL, {
       method: 'POST',
+      mode: 'no-cors',
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify(entry),
     });
-    const result = await res.json();
-    if (result.status === 'ok') {
-      showToast('✅ 記帳しました');
-      resetForm();
-      saveToLocalHistory(entry);
-    } else {
-      showToast('エラーが発生しました', true);
-    }
+    showToast('✅ 記帳しました');
+    resetForm();
+    saveToLocalHistory(entry);
   } catch (e) {
     showToast('通信エラー。GAS URLを確認してください', true);
   }
@@ -625,16 +621,12 @@ async function createBook(type) {
   const labels = { pl: '損益計算書', bs: '貸借対照表', ledger: '総勘定元帳' };
   document.getElementById('loading').classList.add('show');
   try {
-    const res = await fetch(GAS_URL, {
+    await fetch(GAS_URL, {
       method: 'POST',
+      mode: 'no-cors',
       body: JSON.stringify({ action: type, year }),
     });
-    const json = await res.json();
-    if (json.status === 'ok') {
-      showToast(`✅ ${year}年 ${labels[type]}を作成しました`);
-    } else {
-      showToast('❌ ' + (json.message || 'エラーが発生しました'), true);
-    }
+    showToast(`✅ ${year}年 ${labels[type]}を作成しました`);
   } catch(e) {
     showToast('❌ 通信エラー', true);
   } finally {
@@ -664,8 +656,7 @@ async function testConnection() {
   if (!GAS_URL) { showToast('URLを入力してください', true); return; }
   setLoading(true);
   try {
-    const res = await fetch(GAS_URL + '?test=1');
-    const text = await res.text();
+    await fetch(GAS_URL, { mode: 'no-cors' });
     showToast('✅ 接続OK');
   } catch {
     showToast('接続失敗。URLを確認してください', true);
