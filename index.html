@@ -388,6 +388,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // 設定読み込み
   if (GAS_URL) document.getElementById('gasUrl').value = GAS_URL;
   if (SHEET_URL) document.getElementById('sheetUrl').value = SHEET_URL;
+  setType(currentType);
 
   // 音声認識の初期化
   initVoice();
@@ -514,6 +515,29 @@ function parseVoiceInput(text) {
 }
 
 // ===== 記帳送信 =====
+function normalizeGasUrl(url) {
+  return url.trim();
+}
+
+function validateGasUrl(url) {
+  if (!url) return '設定タブでGAS URLを入力してください';
+  if (!/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec(?:\?.*)?$/.test(url)) {
+    return 'GAS URLは /exec で終わるデプロイURLを設定してください';
+  }
+  return '';
+}
+
+async function postToGas(payload) {
+  const response = await fetch(normalizeGasUrl(GAS_URL), {
+    method: 'POST',
+    mode: 'no-cors',
+    cache: 'no-store',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(payload),
+  });
+  return response;
+}
+
 async function submitEntry() {
   const date = document.getElementById('date').value;
   const business = document.getElementById('business').value;
@@ -526,8 +550,9 @@ async function submitEntry() {
     showToast('日付と金額を入力してください', true);
     return;
   }
-  if (!GAS_URL) {
-    showToast('設定タブでGAS URLを入力してください', true);
+  const gasUrlError = validateGasUrl(GAS_URL);
+  if (gasUrlError) {
+    showToast(gasUrlError, true);
     return;
   }
 
@@ -542,6 +567,8 @@ async function submitEntry() {
   }
 
   const entry = {
+    source: 'MoneyMentor-keirei',
+    submittedAt: new Date().toISOString(),
     date, business,
     type: currentType === 'income' ? '収入' : '支出',
     debit, debitAmount: amount,
@@ -552,13 +579,8 @@ async function submitEntry() {
 
   setLoading(true);
   try {
-    await fetch(GAS_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify(entry),
-    });
-    showToast('✅ 記帳しました');
+    await postToGas(entry);
+    showToast('✅ 送信しました。スプシを確認してください');
     resetForm();
     saveToLocalHistory(entry);
   } catch (e) {
@@ -610,23 +632,25 @@ function loadHistory() {
 // ===== 設定 =====
 function saveSettings() {
   GAS_URL = document.getElementById('gasUrl').value.trim();
+  const gasUrlError = validateGasUrl(GAS_URL);
+  if (gasUrlError) {
+    showToast(gasUrlError, true);
+    return;
+  }
   localStorage.setItem('gasUrl', GAS_URL);
   showToast('✅ 保存しました');
 }
 
 async function createBook(type) {
-  if (!GAS_URL) { showToast('❌ GAS URLを設定してください', true); return; }
+  const gasUrlError = validateGasUrl(GAS_URL);
+  if (gasUrlError) { showToast(`❌ ${gasUrlError}`, true); return; }
   const year = parseInt(document.getElementById('bookYear').value);
   if (!year || year < 2020 || year > 2099) { showToast('❌ 年度を正しく入力してください', true); return; }
   const labels = { pl: '損益計算書', bs: '貸借対照表', ledger: '総勘定元帳' };
   document.getElementById('loading').classList.add('show');
   try {
-    await fetch(GAS_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      body: JSON.stringify({ action: type, year }),
-    });
-    showToast(`✅ ${year}年 ${labels[type]}を作成しました`);
+    await postToGas({ action: type, year, source: 'MoneyMentor-keirei', submittedAt: new Date().toISOString() });
+    showToast(`✅ ${year}年 ${labels[type]}の作成を送信しました`);
   } catch(e) {
     showToast('❌ 通信エラー', true);
   } finally {
@@ -653,11 +677,12 @@ function openSheet() {
 }
 
 async function testConnection() {
-  if (!GAS_URL) { showToast('URLを入力してください', true); return; }
+  const gasUrlError = validateGasUrl(GAS_URL);
+  if (gasUrlError) { showToast(gasUrlError, true); return; }
   setLoading(true);
   try {
-    await fetch(GAS_URL, { mode: 'no-cors' });
-    showToast('✅ 接続OK');
+    await fetch(normalizeGasUrl(GAS_URL), { mode: 'no-cors', cache: 'no-store' });
+    showToast('✅ URL形式OK。記帳で送信確認してください');
   } catch {
     showToast('接続失敗。URLを確認してください', true);
   }
