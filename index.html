@@ -527,6 +527,10 @@ function validateGasUrl(url) {
   return '';
 }
 
+function formatDateForSheet(dateValue) {
+  return dateValue.replace(/-/g, '/');
+}
+
 async function postToGas(payload) {
   const response = await fetch(normalizeGasUrl(GAS_URL), {
     method: 'POST',
@@ -569,7 +573,8 @@ async function submitEntry() {
   const entry = {
     source: 'MoneyMentor-keirei',
     submittedAt: new Date().toISOString(),
-    date, business,
+    date: formatDateForSheet(date),
+    business,
     type: currentType === 'income' ? '収入' : '支出',
     debit, debitAmount: amount,
     credit, creditAmount: amount,
